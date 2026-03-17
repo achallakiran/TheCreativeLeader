@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>The Creative Leader</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+    font-family: 'Georgia', serif;
+    user-select: none;
+    background: #b0dff7;
+  }
+
+  /* ── PORTRAIT OVERLAY ── */
+  #portrait-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: #b0dff7;
+    z-index: 9999;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+  #portrait-overlay.show { display: flex; }
+  #portrait-overlay svg { animation: rotatePrompt 2s ease-in-out infinite; }
+  @keyframes rotatePrompt {
+    0%,100% { transform: rotate(0deg); }
+    50%      { transform: rotate(90deg); }
+  }
+  #portrait-overlay p {
+    font-size: clamp(16px, 4vw, 22px);
+    color: #1a2e45;
+    font-weight: bold;
+    text-align: center;
+    padding: 0 20px;
+  }
+
+  /* ── SCENE ── */
+  #scene {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: #b0dff7;
+    overflow: hidden;
+  }
+
+  /* ── TITLE ── */
+  #title {
+    position: absolute;
+    top: 2%;
+    right: 2%;
+    font-size: clamp(16px, 2.8vw, 36px);
+    font-weight: 900;
+    font-family: 'Georgia', serif;
+    color: #1a2e45;
+    letter-spacing: 1px;
+    pointer-events: none;
+    z-index: 10;
+  }
+
+  /* ── CLOUDS ── */
+  .cloud { position: absolute; pointer-events: none; }
+  @keyframes driftA {
+    0%   { transform: translateX(-220px) translateY(0px); }
+    25%  { transform: translateX(25vw) translateY(-5px); }
+    50%  { transform: translateX(50vw) translateY(0px); }
+    75%  { transform: translateX(75vw) translateY(5px); }
+    100% { transform: translateX(calc(100vw + 220px)) translateY(0px); }
+  }
+  @keyframes driftB {
+    0%   { transform: translateX(-180px) translateY(0px); }
+    35%  { transform: translateX(35vw) translateY(4px); }
+    70%  { transform: translateX(70vw) translateY(-4px); }
+    100% { transform: translateX(calc(100vw + 180px)) translateY(0px); }
+  }
+  @keyframes driftC {
+    0%   { transform: translateX(-140px) translateY(0px); }
+    45%  { transform: translateX(45vw) translateY(-3px); }
+    100% { transform: translateX(calc(100vw + 140px)) translateY(0px); }
+  }
+  #cloud1 { top: 3%;  animation: driftA 60s linear infinite; }
+  #cloud2 { top: 9%;  animation: driftB 85s linear infinite 18s; }
+  #cloud3 { top: 15%; animation: driftC 105s linear infinite 38s; }
+
+  /* ── BIRDS ── */
+  .bird-group { position: absolute; pointer-events: none; }
+  @keyframes flyA { 0% { transform: translateX(-130px); } 100% { transform: translateX(calc(100vw + 130px)); } }
+  @keyframes flyB { 0% { transform: translateX(-100px); } 100% { transform: translateX(calc(100vw + 100px)); } }
+  #birds1 { top: 5%;  animation: flyA 28s linear infinite 2s; }
+  #birds2 { top: 11%; animation: flyB 38s linear infinite 16s; }
+  @keyframes wingFlapUp {
+    0%,100% { transform: scaleY(1);    transform-origin: center bottom; }
+    50%      { transform: scaleY(-0.5); transform-origin: center bottom; }
+  }
+  .bird-wing {
+    transform-box: fill-box;
+    transform-origin: center bottom;
+    animation: wingFlapUp 0.9s ease-in-out infinite;
+  }
+  .bird-wing:nth-child(2) { animation-delay: 0.15s; }
+  .bird-wing:nth-child(3) { animation-delay: 0.30s; }
+
+  /* ── CHARACTER ── */
+  #character-anchor {
+    position: absolute;
+    z-index: 28; /* above stage (15) and flowers (22) */
+  }
+  #char-svg { overflow: visible; display: block; }
+  #face-flip-group { /* transform-origin set by JS */ }
+
+  /* ── LOTUS ── */
+  .lotus-wrap {
+    position: absolute;
+    z-index: 22;
+    pointer-events: none;
+  }
+  #lotus-left  { left: clamp(8px, 2.5vw, 40px); }
+  #lotus-right { right: clamp(8px, 2.5vw, 40px); }
+  .lotus-svg { overflow: visible; display: block; }
+  .petal { transition: transform 0.65s cubic-bezier(.34,1.3,.64,1); }
+
+  /* ── STAGE ── */
+  #stage {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #111;
+    border-radius: 10px 10px 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 15;
+  }
+
+  /* ── COMIC FRAME ── */
+  #comic-frame {
+    background: #fff;
+    border-radius: 3px;
+    width: 100%;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+  }
+
+  #comic-strip {
+    width: 78%;
+    height: 78%;
+    object-fit: contain;
+    display: block;
+    background: #fff;
+    transition: transform 0.15s ease;
+  }
+  #comic-strip:hover { transform: scale(1.02); }
+
+  /* ── NAV inside stage ── */
+  #nav {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(20px, 6vw, 80px);
+    padding: clamp(4px, 0.8vh, 10px) 0;
+    flex-shrink: 0;
+  }
+  .nav-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    opacity: 0.9;
+    transition: transform 0.15s, opacity 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .nav-btn:hover  { opacity: 1; transform: scale(1.2); }
+  .nav-btn:active { transform: scale(0.9); }
+  .arrow-icon, .bulb-icon { display: block; }
+
+  /* ── GRASS ── */
+  #grass {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 20;
+    pointer-events: none;
+  }
+
+  /* ── LIGHTBOX ── */
+  #lightbox {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  #lightbox.open { display: flex; }
+  #lightbox-img {
+    max-width: 92vw;
+    max-height: 88vh;
+    object-fit: contain;
+    border-radius: 6px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+    cursor: default;
+  }
+  #lightbox-close {
+    position: absolute;
+    top: 16px;
+    right: 20px;
+    background: rgba(255,255,255,0.15);
+    border: 2px solid rgba(255,255,255,0.5);
+    color: white;
+    font-size: 22px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    font-family: sans-serif;
+  }
+  #lightbox-close:hover { background: rgba(255,255,255,0.3); }
+</style>
+</head>
+<body>
+
+<!-- PORTRAIT OVERLAY -->
+<div id="portrait-overlay">
+  <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+    <rect x="20" y="8" width="32" height="56" rx="5" stroke="#1a2e45" stroke-width="3" fill="none"/>
+    <circle cx="36" cy="56" r="3" fill="#1a2e45"/>
+    <path d="M52 20 Q62 36 52 52" stroke="#1a2e45" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <polygon points="48,50 56,54 54,46" fill="#1a2e45"/>
+  </svg>
+  <p>Please rotate your device to landscape for the best experience</p>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <button id="lightbox-close" aria-label="Close">✕</button>
+  <img id="lightbox-img" src="" alt="Comic expanded"/>
+</div>
+
+<div id="scene">
+
+  <!-- TITLE -->
+  <div id="title">The Creative Leader</div>
+
+  <!-- CLOUDS -->
+  <div class="cloud" id="cloud1">
+    <svg width="180" height="70" viewBox="0 0 180 70" fill="none">
+      <ellipse cx="90" cy="48" rx="78" ry="22" fill="white"/>
+      <ellipse cx="60" cy="38" rx="38" ry="28" fill="white"/>
+      <ellipse cx="110" cy="34" rx="44" ry="30" fill="white"/>
+      <ellipse cx="90"  cy="30" rx="30" ry="22" fill="white"/>
+    </svg>
+  </div>
+  <div class="cloud" id="cloud2">
+    <svg width="140" height="55" viewBox="0 0 140 55" fill="none">
+      <ellipse cx="70" cy="40" rx="60" ry="16" fill="white"/>
+      <ellipse cx="48" cy="30" rx="30" ry="22" fill="white"/>
+      <ellipse cx="88" cy="26" rx="36" ry="24" fill="white"/>
+    </svg>
+  </div>
+  <div class="cloud" id="cloud3">
+    <svg width="110" height="44" viewBox="0 0 110 44" fill="none">
+      <ellipse cx="55" cy="32" rx="48" ry="13" fill="white"/>
+      <ellipse cx="36" cy="24" rx="24" ry="18" fill="white"/>
+      <ellipse cx="70" cy="20" rx="28" ry="19" fill="white"/>
+    </svg>
+  </div>
+
+  <!-- BIRDS -->
+  <div class="bird-group" id="birds1">
+    <svg width="130" height="32" viewBox="0 0 130 32" fill="none">
+      <g class="bird-wing"><path d="M2 18 Q10 8 18 18"  stroke="#1a2e45" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>
+      <g class="bird-wing"><path d="M36 14 Q44 4 52 14" stroke="#1a2e45" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>
+      <g class="bird-wing"><path d="M70 19 Q78 9 86 19" stroke="#1a2e45" stroke-width="2.2" fill="none" stroke-linecap="round"/></g>
+    </svg>
+  </div>
+  <div class="bird-group" id="birds2">
+    <svg width="100" height="26" viewBox="0 0 100 26" fill="none">
+      <g class="bird-wing"><path d="M2 14 Q9 5 16 14"  stroke="#1a2e45" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+      <g class="bird-wing"><path d="M28 10 Q35 1 42 10" stroke="#1a2e45" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+      <g class="bird-wing"><path d="M56 15 Q63 6 70 15" stroke="#1a2e45" stroke-width="2" fill="none" stroke-linecap="round"/></g>
+    </svg>
+  </div>
+
+  <!-- CHARACTER — viewBox 160×220 -->
+  <div id="character-anchor">
+    <svg id="char-svg" viewBox="0 0 160 220" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+
+      <!-- FIXED yellow sun — no rays -->
+      <circle id="sun-circle" cx="80" cy="88" r="68" fill="#f5e642"/>
+
+      <!-- FACE FLIP GROUP — mirrors around sun centre (80,88) -->
+      <g id="face-flip-group">
+        <!-- neck -->
+        <rect x="62" y="138" width="36" height="44" rx="6" fill="#e8c99a"/>
+        <!-- face skin -->
+        <rect x="36" y="60" width="88" height="86" rx="14" fill="#e8c99a"/>
+        <!-- hair: wide horizontal block -->
+        <rect x="30" y="44" width="100" height="26" rx="5" fill="#1a1a1a"/>
+        <!-- hair: tall vertical block right -->
+        <rect x="104" y="42" width="34" height="48" rx="5" fill="#1a1a1a"/>
+        <!-- glasses left -->
+        <rect x="38" y="97" width="34" height="20" rx="6" fill="none" stroke="#1a1a1a" stroke-width="3"/>
+        <!-- glasses right -->
+        <rect x="88" y="97" width="34" height="20" rx="6" fill="none" stroke="#1a1a1a" stroke-width="3"/>
+        <!-- glasses bridge -->
+        <line x1="72" y1="107" x2="88" y2="107" stroke="#1a1a1a" stroke-width="3"/>
+        <!-- glasses left arm -->
+        <line x1="38" y1="107" x2="28" y2="107" stroke="#1a1a1a" stroke-width="3"/>
+        <!-- glasses right arm -->
+        <line x1="122" y1="107" x2="132" y2="107" stroke="#1a1a1a" stroke-width="3"/>
+        <!-- eye whites -->
+        <circle cx="55"  cy="107" r="8" fill="white"/>
+        <circle cx="105" cy="107" r="8" fill="white"/>
+        <!-- lips -->
+        <rect x="66" y="132" width="28" height="9" rx="4" fill="#c07850"/>
+        <!-- goatee -->
+        <rect x="69" y="141" width="22" height="9" rx="4" fill="#1a1a1a"/>
+      </g>
+
+      <!-- PUPILS — outside flip group -->
+      <circle id="pupil-left"  cx="55"  cy="107" r="4" fill="#1a1a1a"/>
+      <circle id="pupil-right" cx="105" cy="107" r="4" fill="#1a1a1a"/>
+
+    </svg>
+  </div>
+
+  <!-- LOTUS LEFT (larger) -->
+  <div class="lotus-wrap" id="lotus-left">
+    <svg class="lotus-svg" id="lotus-left-svg" viewBox="0 0 80 145" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+      <line x1="40" y1="145" x2="40" y2="92" stroke="#4a8c30" stroke-width="4" stroke-linecap="round"/>
+      <ellipse cx="24" cy="118" rx="17" ry="6.5" fill="#5aad3a" transform="rotate(-35 24 118)"/>
+      <ellipse cx="57" cy="106" rx="17" ry="6.5" fill="#5aad3a" transform="rotate(30 57 106)"/>
+      <ellipse cx="40" cy="92"  rx="11" ry="5.5" fill="#e055a8"/>
+      <ellipse class="petal" id="ll-p1" cx="40" cy="70" rx="8" ry="24" fill="#d966b8" transform-origin="40px 92px" style="transform:rotate(-12deg)"/>
+      <ellipse class="petal" id="ll-p2" cx="40" cy="70" rx="8" ry="24" fill="#d966b8" transform-origin="40px 92px" style="transform:rotate(12deg)"/>
+      <ellipse class="petal" id="ll-p3" cx="40" cy="70" rx="8" ry="24" fill="#e070c8" transform-origin="40px 92px" style="transform:rotate(0deg)"/>
+      <ellipse class="petal" id="ll-p4" cx="40" cy="70" rx="7" ry="22" fill="#c044a0" transform-origin="40px 92px" style="transform:rotate(-26deg)"/>
+      <ellipse class="petal" id="ll-p5" cx="40" cy="70" rx="7" ry="22" fill="#c044a0" transform-origin="40px 92px" style="transform:rotate(26deg)"/>
+      <circle cx="40" cy="90" r="8" fill="#f5c842"/>
+    </svg>
+  </div>
+
+  <!-- LOTUS RIGHT (smaller) -->
+  <div class="lotus-wrap" id="lotus-right">
+    <svg class="lotus-svg" id="lotus-right-svg" viewBox="0 0 80 145" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+      <line x1="40" y1="145" x2="40" y2="98" stroke="#4a8c30" stroke-width="3" stroke-linecap="round"/>
+      <ellipse cx="26" cy="120" rx="14" ry="5.5" fill="#5aad3a" transform="rotate(-30 26 120)"/>
+      <ellipse cx="55" cy="108" rx="14" ry="5.5" fill="#5aad3a" transform="rotate(32 55 108)"/>
+      <ellipse cx="40" cy="98"  rx="9"  ry="4.5" fill="#e055a8"/>
+      <ellipse class="petal" id="rl-p1" cx="40" cy="78" rx="6.5" ry="20" fill="#d966b8" transform-origin="40px 98px" style="transform:rotate(-12deg)"/>
+      <ellipse class="petal" id="rl-p2" cx="40" cy="78" rx="6.5" ry="20" fill="#d966b8" transform-origin="40px 98px" style="transform:rotate(12deg)"/>
+      <ellipse class="petal" id="rl-p3" cx="40" cy="78" rx="6.5" ry="20" fill="#e070c8" transform-origin="40px 98px" style="transform:rotate(0deg)"/>
+      <ellipse class="petal" id="rl-p4" cx="40" cy="78" rx="6"   ry="18" fill="#c044a0" transform-origin="40px 98px" style="transform:rotate(-26deg)"/>
+      <ellipse class="petal" id="rl-p5" cx="40" cy="78" rx="6"   ry="18" fill="#c044a0" transform-origin="40px 98px" style="transform:rotate(26deg)"/>
+      <circle cx="40" cy="96" r="6.5" fill="#f5c842"/>
+    </svg>
+  </div>
+
+  <!-- STAGE -->
+  <div id="stage">
+    <div id="comic-frame">
+      <img id="comic-strip" src="" alt=""/>
+    </div>
+    <div id="nav">
+      <button class="nav-btn" id="btn-prev" aria-label="Previous comic">
+        <svg class="arrow-icon" viewBox="0 0 44 44" fill="none">
+          <polygon points="34,7 10,22 34,37" fill="#f5e642"/>
+        </svg>
+      </button>
+      <button class="nav-btn" id="btn-random" aria-label="Random comic">
+        <svg class="bulb-icon" viewBox="0 0 42 52" fill="none">
+          <path d="M21 3C11 3 4 11 4 20c0 7 5 13 11 16v6h12v-6c6-3 11-9 11-16C38 11 31 3 21 3Z" fill="#f5e642" opacity="0.95"/>
+          <path d="M12 13Q15 8 20 7" stroke="white" stroke-width="1.8" fill="none" stroke-linecap="round" opacity="0.6"/>
+          <rect x="16" y="43" width="10" height="3" rx="1.5" fill="#f5e642"/>
+          <rect x="17" y="47" width="8"  height="3" rx="1.5" fill="#f5e642"/>
+          <path d="M17 39L17 31L25 31L25 39" stroke="white" stroke-width="1.4" fill="none" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="nav-btn" id="btn-next" aria-label="Next comic">
+        <svg class="arrow-icon" viewBox="0 0 44 44" fill="none">
+          <polygon points="10,7 34,22 10,37" fill="#f5e642"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- GRASS — two greens -->
+  <svg id="grass" viewBox="0 0 1440 80" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+    <rect y="38" width="1440" height="42" fill="#5dbf3a"/>
+    <g id="grass-teeth"></g>
+  </svg>
+
+</div><!-- /#scene -->
+
+<script>
+// ── PORTRAIT ──
+const overlay = document.getElementById('portrait-overlay');
+function checkOrientation() {
+  const isPortrait = window.innerHeight > window.innerWidth;
+  const isTouch    = navigator.maxTouchPoints > 0;
+  overlay.classList.toggle('show', isPortrait && isTouch);
+}
+checkOrientation();
+window.addEventListener('resize', checkOrientation);
+window.addEventListener('orientationchange', checkOrientation);
+
+// ── HELPERS ──
+function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+
+// ── ELEMENT REFS ──
+const stage      = document.getElementById('stage');
+const charAnchor = document.getElementById('character-anchor');
+const charSvg    = document.getElementById('char-svg');
+const lotusLSvg  = document.getElementById('lotus-left-svg');
+const lotusRSvg  = document.getElementById('lotus-right-svg');
+const lotusL     = document.getElementById('lotus-left');
+const lotusR     = document.getElementById('lotus-right');
+const grassEl    = document.getElementById('grass');
+const navEl      = document.getElementById('nav');
+
+// ── LAYOUT ──
+// Stage dimensions stored globally so character positioning can reference them
+let stageLeft = 0, stageTopPx = 0, stageWidthPx = 0;
+
+function layout() {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  // Grass
+  const grassH = Math.round(vh * 0.11);
+  grassEl.style.height = grassH + 'px';
+
+  // Nav bar
+  const navBarH = Math.round(vh * 0.055);
+  navEl.style.height = navBarH + 'px';
+
+  // Icon sizing
+  const iconSz = Math.round(Math.min(navBarH * 0.7, 38));
+  document.querySelectorAll('.arrow-icon').forEach(i => {
+    i.style.width = iconSz + 'px'; i.style.height = iconSz + 'px';
+  });
+  document.querySelectorAll('.bulb-icon').forEach(i => {
+    i.style.width  = Math.round(iconSz * 0.88) + 'px';
+    i.style.height = Math.round(iconSz * 0.88) + 'px';
+  });
+
+  // Stage — flush on grass
+  const stageW      = Math.round(Math.min(vw * 0.88, 1100));
+  const stageH      = Math.round(vh * 0.74);
+  const stageBottom = grassH;
+  stage.style.width  = stageW + 'px';
+  stage.style.height = stageH + 'px';
+  stage.style.bottom = stageBottom + 'px';
+
+  const pad = Math.round(vh * 0.018);
+  stage.style.padding = `${pad}px ${pad}px 0 ${pad}px`;
+
+  // Store stage geometry for character positioning
+  stageWidthPx = stageW;
+  stageTopPx   = vh - stageBottom - stageH; // top of stage from top of viewport
+  stageLeft    = Math.round((vw - stageW) / 2); // left edge of stage from left of viewport
+
+  // ── CHARACTER ──
+  // Sun centre in viewBox: (80, 88), viewBox 160×220
+  // We want the character positioned so that:
+  //   - the sun circle (r=68 in viewBox) overlaps the top-left corner of the stage
+  //   - roughly 1/4 of the circle sits over the board (sun centre is near the top-left corner of stage)
+  // Sun centre should be at approximately: (stageLeft + sunR*0.5, stageTopPx + sunR*0.5)
+  // where sunR is the rendered radius of the sun
+
+  const charW         = Math.round(Math.min(vw * 0.14, 185));
+  const charH         = charW * (220 / 160);
+  const sunRenderedR  = charW * (68 / 160);  // rendered radius of sun
+  // sun centre in rendered coords relative to charAnchor top-left
+  const sunOffsetX    = charW  * (80  / 160);
+  const sunOffsetY    = charH  * (88  / 220);
+
+  // Target: sun centre sits at (stageLeft + sunRenderedR*0.55, stageTopPx + sunRenderedR*0.55)
+  // charAnchor left = sunTarget_x - sunOffsetX
+  // charAnchor top  = sunTarget_y - sunOffsetY
+  const targetSunX = stageLeft + sunRenderedR * 0.55;
+  const targetSunY = stageTopPx + sunRenderedR * 0.55;
+
+  const charLeft = Math.round(targetSunX - sunOffsetX);
+  const charTop  = Math.round(targetSunY - sunOffsetY);
+
+  charSvg.style.width  = charW + 'px';
+  charSvg.style.height = 'auto';
+  charAnchor.style.left   = charLeft + 'px';
+  charAnchor.style.top    = charTop  + 'px';
+  charAnchor.style.bottom = 'auto';
+
+  // ── LOTUS SIZES — v4 sizes × 1.7 ──
+  // v4 left: vw*0.075*1.6  → v5: ×1.7 on top of that = vw*0.075*1.6*1.7
+  const lotusLW = Math.round(Math.min(vw * 0.075 * 1.6 * 1.7, 285));
+  const lotusRW = Math.round(Math.min(vw * 0.075 * 0.62 * 1.6 * 1.7, 177));
+  lotusLSvg.style.width  = lotusLW + 'px';
+  lotusLSvg.style.height = 'auto';
+  lotusRSvg.style.width  = lotusRW + 'px';
+  lotusRSvg.style.height = 'auto';
+
+  const lotusBtm = grassH - 2;
+  lotusL.style.bottom = lotusBtm + 'px';
+  lotusR.style.bottom = lotusBtm + 'px';
+}
+
+layout();
+window.addEventListener('resize', () => { layout(); updateCharacter(lastCX, lastCY); });
+
+// ── GRASS TEETH — two greens ──
+(function buildGrass() {
+  const g  = document.getElementById('grass-teeth');
+  const tw = 22;
+  const n  = Math.ceil(1440 / tw) + 2;
+  for (let i = 0; i < n; i++) {
+    const x   = i * tw;
+    const tri = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+    tri.setAttribute('points', `${x},40 ${x + tw/2},4 ${x + tw},40`);
+    tri.setAttribute('fill', i % 2 === 0 ? '#3d9e1e' : '#7dd44e');
+    g.appendChild(tri);
+  }
+})();
+
+// ── COMIC MANAGER ──
+const comicImg = document.getElementById('comic-strip');
+let comics = [];
+let currentIndex = 0;
+
+async function loadManifest() {
+  const r    = await fetch('manifest.json');
+  const data = await r.json();
+  comics = data.comics || [];
+  if (comics.length > 0) showComic(0);
+}
+
+function showComic(idx) {
+  currentIndex = ((idx % comics.length) + comics.length) % comics.length;
+  comicImg.src = comics[currentIndex];
+  document.getElementById('lightbox-img').src = comics[currentIndex];
+}
+
+document.getElementById('btn-prev').addEventListener('click',   () => showComic(currentIndex - 1));
+document.getElementById('btn-next').addEventListener('click',   () => showComic(currentIndex + 1));
+document.getElementById('btn-random').addEventListener('click', () => {
+  if (comics.length < 2) return;
+  let r;
+  do { r = Math.floor(Math.random() * comics.length); } while (r === currentIndex);
+  showComic(r);
+});
+
+// Swipe
+let touchStartX = 0;
+comicImg.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+comicImg.addEventListener('touchend',   e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 40) dx < 0 ? showComic(currentIndex + 1) : showComic(currentIndex - 1);
+}, { passive: true });
+
+loadManifest();
+
+// ── LIGHTBOX ──
+const lightbox      = document.getElementById('lightbox');
+const lightboxImg   = document.getElementById('lightbox-img');
+const lightboxClose = document.getElementById('lightbox-close');
+const comicFrame    = document.getElementById('comic-frame');
+
+comicFrame.addEventListener('click', () => {
+  if (!comics[currentIndex]) return;
+  lightboxImg.src = comics[currentIndex];
+  lightbox.classList.add('open');
+});
+function closeLightbox() { lightbox.classList.remove('open'); }
+lightboxClose.addEventListener('click', e => { e.stopPropagation(); closeLightbox(); });
+lightbox.addEventListener('click',      e => { if (e.target === lightbox) closeLightbox(); });
+document.addEventListener('keydown',    e => { if (e.key === 'Escape') closeLightbox(); });
+
+// ── CHARACTER FACE TURN + PUPILS ──
+const faceFlip = document.getElementById('face-flip-group');
+const pupilL   = document.getElementById('pupil-left');
+const pupilR   = document.getElementById('pupil-right');
+
+const SUN_CX_VB = 80;   // sun centre x in viewBox
+const SUN_CY_VB = 88;   // sun centre y in viewBox
+const VB_W      = 160;
+const VB_H      = 220;
+
+const BASE_PL   = { x: 55,  y: 107 };
+const BASE_PR   = { x: 105, y: 107 };
+const PUPIL_MAX = 4;
+
+let facingRight = true;
+let isTurning   = false;
+let lastCX = window.innerWidth * 0.6;
+let lastCY = window.innerHeight * 0.4;
+
+faceFlip.style.transformOrigin = `${SUN_CX_VB}px ${SUN_CY_VB}px`;
+faceFlip.style.transform       = 'scaleX(1)';
+
+function doFaceTurn(toRight) {
+  if (isTurning) return;
+  isTurning   = true;
+  facingRight = toRight;
+  faceFlip.style.transition = 'transform 0.18s ease-in';
+  faceFlip.style.transform  = 'scaleX(0)';
+  setTimeout(() => {
+    faceFlip.style.transition = 'transform 0.18s ease-out';
+    faceFlip.style.transform  = `scaleX(${toRight ? 1 : -1})`;
+    setTimeout(() => { isTurning = false; }, 190);
+  }, 185);
+}
+
+function updateCharacter(cx, cy) {
+  lastCX = cx; lastCY = cy;
+  const rect = charAnchor.getBoundingClientRect();
+  if (rect.width === 0) return;
+
+  const sunSX = rect.left + rect.width  * (SUN_CX_VB / VB_W);
+  const sunSY = rect.top  + rect.height * (SUN_CY_VB / VB_H);
+  const dx = cx - sunSX;
+  const dy = cy - sunSY;
+
+  const shouldFaceRight = dx >= 0;
+  if (shouldFaceRight !== facingRight && !isTurning) doFaceTurn(shouldFaceRight);
+
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const px   = (dx / dist) * Math.min(dist * 0.022, PUPIL_MAX);
+  const py   = (dy / dist) * Math.min(dist * 0.015, PUPIL_MAX);
+  pupilL.setAttribute('cx', BASE_PL.x + px);
+  pupilL.setAttribute('cy', BASE_PL.y + py);
+  pupilR.setAttribute('cx', BASE_PR.x + px);
+  pupilR.setAttribute('cy', BASE_PR.y + py);
+}
+
+updateCharacter(lastCX, lastCY);
+window.addEventListener('mousemove', e => updateCharacter(e.clientX, e.clientY));
+window.addEventListener('touchmove', e => {
+  updateCharacter(e.touches[0].clientX, e.touches[0].clientY);
+}, { passive: true });
+
+// ── LOTUS BLOOM ──
+const leftPetals  = ['ll-p1','ll-p2','ll-p3','ll-p4','ll-p5'].map(id => document.getElementById(id));
+const rightPetals = ['rl-p1','rl-p2','rl-p3','rl-p4','rl-p5'].map(id => document.getElementById(id));
+const closedAngles = [-12, 12, 0, -26, 26];
+const openAngles   = [-78, 78, 0, -118, 118];
+let leftOpen = false, rightOpen = false;
+
+function bloomPetals(petals, open) {
+  const angles = open ? openAngles : closedAngles;
+  petals.forEach((p, i) => { if (p) p.style.transform = `rotate(${angles[i]}deg)`; });
+}
+bloomPetals(leftPetals,  false);
+bloomPetals(rightPetals, false);
+
+function checkLotus(cx, cy) {
+  const threshold = Math.min(window.innerWidth, window.innerHeight) * 0.22;
+  ['left','right'].forEach(side => {
+    const el  = document.getElementById(`lotus-${side}`);
+    if (!el) return;
+    const r   = el.getBoundingClientRect();
+    const lcx = r.left + r.width  / 2;
+    const lcy = r.top  + r.height / 2;
+    const d   = Math.sqrt((cx - lcx) ** 2 + (cy - lcy) ** 2);
+    const open = d < threshold;
+    if (side === 'left'  && open !== leftOpen)  { leftOpen  = open; bloomPetals(leftPetals,  open); }
+    if (side === 'right' && open !== rightOpen) { rightOpen = open; bloomPetals(rightPetals, open); }
+  });
+}
+window.addEventListener('mousemove', e => checkLotus(e.clientX, e.clientY));
+window.addEventListener('touchmove', e => checkLotus(e.touches[0].clientX, e.touches[0].clientY), { passive: true });
+</script>
+</body>
+</html>
